@@ -119,5 +119,3 @@ Start with `docker-compose up -d --build`; stop with `docker-compose down`.
 MIT – feel free to fork and extend.
 
 ---
-
-*Use the first paragraph above as your GitHub repository description.*

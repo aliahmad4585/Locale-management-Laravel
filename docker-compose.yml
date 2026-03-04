@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: translation-service-app
+    container_name: translation_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - tnetwork
+    depends_on:
+      - db
+
+  web:
+    image: nginx:alpine
+    container_name: translation_web
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - tnetwork
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: translation_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: translation
+      MYSQL_USER: user
+      MYSQL_PASSWORD: secret
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - tnetwork
+
+networks:
+  tnetwork:
+    driver: bridge
+
+volumes:
+  dbdata:

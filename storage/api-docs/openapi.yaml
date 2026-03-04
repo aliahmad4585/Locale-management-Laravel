@@ -1,0 +1,380 @@
+openapi: 3.0.0
+info:
+  title: Translation Service API
+  description: RESTful API for managing translations with locale and tag support
+  version: 1.0.0
+  contact:
+    name: Ahmad
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local development
+  - url: https://api.example.com/api
+    description: Production
+
+paths:
+  /login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive API token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '422':
+          description: Validation error or invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Invalidate API token
+      security:
+        - sanctumAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /translations:
+    get:
+      tags:
+        - Translations
+      summary: List translations
+      description: Get paginated list of translations with optional filters
+      security:
+        - sanctumAuth: []
+      parameters:
+        - name: locale
+          in: query
+          schema:
+            type: string
+          description: Filter by locale code (e.g., en, fr, es)
+          example: en
+        - name: key
+          in: query
+          schema:
+            type: string
+          description: Search by translation key
+          example: app.title
+        - name: content
+          in: query
+          schema:
+            type: string
+          description: Full-text search in content
+          example: welcome
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filter by tag name
+          example: important
+        - name: page
+          in: query
+          schema:
+            type: integer
+          description: Page number for pagination
+          example: 1
+      responses:
+        '200':
+          description: List of translations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Translation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Translations
+      summary: Create translation
+      description: Create a new translation entry
+      security:
+        - sanctumAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Translation'
+      responses:
+        '200':
+          description: Translation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Translation'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /translations/{id}:
+    get:
+      tags:
+        - Translations
+      summary: Get translation
+      description: Retrieve a specific translation by ID
+      security:
+        - sanctumAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Translation ID
+      responses:
+        '200':
+          description: Translation details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Translation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags:
+        - Translations
+      summary: Update translation
+      description: Update an existing translation
+      security:
+        - sanctumAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Translation'
+      responses:
+        '200':
+          description: Translation updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Translation'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - Translations
+      summary: Delete translation
+      description: Delete a translation entry
+      security:
+        - sanctumAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Translation deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /export/{locale}:
+    get:
+      tags:
+        - Translations
+      summary: Export translations
+      description: Export all translations for a specific locale as JSON
+      security:
+        - sanctumAuth: []
+      parameters:
+        - name: locale
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Locale code (e.g., en, fr)
+          example: en
+      responses:
+        '200':
+          description: Translations exported
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  app.title: My Application
+                  app.welcome: Welcome to our app
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+      example:
+        id: 1
+        name: Admin User
+        email: admin@example.com
+
+    Translation:
+      type: object
+      properties:
+        id:
+          type: integer
+        locale_id:
+          type: integer
+        locale:
+          type: string
+          description: Locale code
+        key:
+          type: string
+        content:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      example:
+        id: 1
+        locale_id: 1
+        locale: en
+        key: app.title
+        content: My Application
+        tags: [web, mobile]
+        created_at: 2026-03-04T10:20:00Z
+        updated_at: 2026-03-04T10:20:00Z
+  
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+
+    Unauthorized:
+      description: Unauthorized - Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+
+  securitySchemes:
+    sanctumAuth:
+      type: http
+      scheme: bearer
+      description: Laravel Sanctum API token
+
+tags:
+  - name: Authentication
+    description: Authentication endpoints
+  - name: Translations
+    description: Translation management endpoints

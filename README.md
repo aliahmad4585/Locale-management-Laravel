@@ -16,8 +16,8 @@ service supports full‑text searching, CSV export and token authentication.
 
 1. Clone the repo:
    ```bash
-   git clone <url> translation-service
-   cd translation-service
+   git clone <url>
+   cd Locale-management-Laravel
    cp .env.example .env
    php artisan key:generate
    ```
